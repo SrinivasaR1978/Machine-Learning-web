@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Regression Analysis Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: #f1f3f4;
+            padding: 25px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        h2 {
+            color: #1a237e;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        .section {
+            border-radius: 14px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        /* 🎨 Section colors */
+        .section-upload     { background-color: #d1e7dd; } /* mint green */
+        .section-columns    { background-color: #fff3cd; } /* soft yellow */
+        .section-results    { background-color: #e0ecff; } /* light blue */
+        .section-plots      { background-color: #f8d7da; } /* light pink/red */
+        .section-formula    { background-color: #d7f0fa; } /* cyan */
+        .section-predict    { background-color: #e8daef; } /* lavender */
+        
+        h4 {
+            font-weight: bold;
+            color: #212529;
+            border-bottom: 2px solid rgba(0,0,0,0.1);
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+        img {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        table {
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📊 Regression Analysis Dashboard</h2>
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

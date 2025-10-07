@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- 1️⃣ Upload CSV -->
+<div class="section section-upload">
+  <h4>1️⃣ Upload CSV File</h4>
+  <form method="post" enctype="multipart/form-data">
+    <input type="file" name="file" class="form-control mb-2" accept=".csv" required>
+    <button type="submit" class="btn btn-primary">Upload</button>
+  </form>
+</div>
+
+<!-- 2️⃣ Preview -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h4>2️⃣ Dataset Preview</h4>
+      {% if rows %}
+        <p><b>Rows:</b> {{ rows }} | <b>Columns:</b> {{ cols }}</p>
+
+        <h5>Missing / Blank / NA Counts per Column</h5>
+        <ul>
+          {% for col, vals in missing.items() %}
+            <li><b>{{ col }}</b> — Combined: {{ vals.combined }} | NA: {{ vals.na }} | Blank-like: {{ vals.blank }}</li>
+          {% endfor %}
+        </ul>
+
+        <h5 class="mt-3">First 5 Rows</h5>
+        <div class="table-responsive">{{ head|safe }}</div>
+      {% else %}
+        <p class="text-muted">No dataset uploaded yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+{% if uploaded %}
+<!-- 2️⃣ Select Columns -->
+<div class="section section-columns">
+  <h4>2️⃣ Select Columns for Analysis</h4>
+  <form method="post">
+    <label>Dependent Variable (Y):</label>
+    <select name="y_col" class="form-control mb-2" required>
+      {% for col in columns %}
+      <option value="{{ col }}">{{ col }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Independent Variables (X):</label>
+    {% for col in columns %}
+    <div>
+      <input type="checkbox" name="x_cols" value="{{ col }}"> {{ col }}
+    </div>
+    {% endfor %}
+    <button type="submit" name="analyze" class="btn btn-success mt-3">Run Regression</button>
+  </form>
+</div>
+{% endif %}
+
+{% if lin_metrics %}
+<!-- 3️⃣ Model Results -->
+<div class="section section-results">
+  <h4>3️⃣ Model Evaluation Metrics</h4>
+  <table class="table table-bordered text-center">
+    <thead>
+      <tr>
+        <th>Model</th><th>MSE</th><th>MAE</th><th>RMSE</th><th>R²</th><th>Adj R²</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Linear</td><td>{{ '%.4f'|format(lin_metrics.MSE) }}</td><td>{{ '%.4f'|format(lin_metrics.MAE) }}</td><td>{{ '%.4f'|format(lin_metrics.RMSE) }}</td><td>{{ '%.4f'|format(lin_metrics.R2) }}</td><td>{{ '%.4f'|format(lin_metrics.Adj_R2) }}</td></tr>
+      <tr><td>Ridge</td><td>{{ '%.4f'|format(ridge_metrics.MSE) }}</td><td>{{ '%.4f'|format(ridge_metrics.MAE) }}</td><td>{{ '%.4f'|format(ridge_metrics.RMSE) }}</td><td>{{ '%.4f'|format(ridge_metrics.R2) }}</td><td>{{ '%.4f'|format(ridge_metrics.Adj_R2) }}</td></tr>
+      <tr><td>Lasso</td><td>{{ '%.4f'|format(lasso_metrics.MSE) }}</td><td>{{ '%.4f'|format(lasso_metrics.MAE) }}</td><td>{{ '%.4f'|format(lasso_metrics.RMSE) }}</td><td>{{ '%.4f'|format(lasso_metrics.R2) }}</td><td>{{ '%.4f'|format(lasso_metrics.Adj_R2) }}</td></tr>
+    </tbody>
+  </table>
+  <h5>🏆 Best Model: <b>{{ best_model }}</b></h5>
+</div>
+
+<!-- 4️⃣ Plots -->
+<div class="section section-plots">
+  <h4>4️⃣ Visualizations</h4>
+  {% for name, path in plot_paths.items() %}
+  <div class="mb-4">
+    <h6>{{ name.replace('_', ' ').title() }}</h6>
+    <img src="{{ url_for('results_files', filename=path) }}" class="img-fluid mb-3">
+  </div>
+  {% endfor %}
+</div>
+
+<!-- 4.1 Formula -->
+<div class="section section-formula">
+  <h4>📘 Regression Formula (SST, SSR, SSE)</h4>
+  <img src="{{ url_for('static', filename='formula_squares.png') }}" alt="Formula">
+</div>
+
+<!-- 5️⃣ Manual Prediction -->
+<div class="section section-predict">
+  <h4>🔮 Predict Using Model</h4>
+  <form method="post">
+    <input type="hidden" name="manual_predict" value="1">
+    {% for col in x_cols %}
+      <label>{{ col }}:</label>
+      <input type="number" step="any" name="{{ col }}" class="form-control mb-2" required>
+    {% endfor %}
+    <button type="submit" class="btn btn-info">Predict</button>
+  </form>
+
+  {% if pred_value %}
+  <div class="mt-3">
+    <h5>Predicted <b>{{ y_col }}</b>: {{ '%.4f'|format(pred_value) }}</h5>
+    <p><b>{{ fit_status }}</b></p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

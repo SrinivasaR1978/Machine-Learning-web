@@ -1,0 +1,246 @@
+{% extends "base2.html" %}
+{% block title %}Dataset Analyzer{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12 mb-2">
+    <h2>Interactive Regression Workspace</h2>
+  </div>
+</div>
+
+<!-- 1. Upload -->
+<div class="section sec-1">
+  <h4>1) Upload dataset</h4>
+  <form method="POST" enctype="multipart/form-data">
+    <div class="row g-2">
+      <div class="col-md-8">
+        <input type="file" name="file" accept=".csv,.xls,.xlsx" class="form-control" required>
+      </div>
+      <div class="col-md-4">
+        <button class="btn btn-primary w-100" type="submit">Upload</button>
+      </div>
+    </div>
+    <div class="mt-2 small text-muted">Supported: CSV, XLSX. Upload will show preview & missing summary.</div>
+  </form>
+  {% if msg %}<div class="alert alert-success mt-2">{{ msg }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger mt-2">{{ error }}</div>{% endif %}
+</div>
+
+<!-- 2. Display rows, cols, 5 head -->
+<div class="section sec-2">
+  <h4>2) Dataset summary</h4>
+  {% if rows %}
+    <div class="row">
+      <div class="col-md-2">
+        <div class="p-2 table-white text-center">
+          <div class="small text-muted">Rows</div>
+          <h3>{{ rows }}</h3>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="p-2 table-white text-center">
+          <div class="small text-muted">Columns</div>
+          <h3>{{ cols }}</h3>
+        </div>
+      </div>
+      <div class="col-md-8">
+        <div class="table-white">
+          <div class="small text-muted">Preview (first 5 rows)</div>
+          <div class="table-responsive mt-2">{{ head|safe }}</div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="small text-muted">Upload a dataset to see summary.</div>
+  {% endif %}
+</div>
+
+<!-- 3. Missing/blank -->
+<div class="section sec-3">
+  <h4>3) Missing / Blank / NA summary</h4>
+  {% if missing %}
+    <div class="table-white">
+      <table class="table table-sm table-bordered mb-0">
+        <thead class="table-light">
+          <tr><th>Column</th><th>Total Missing</th><th>NaN</th><th>Blank/NA</th></tr>
+        </thead>
+        <tbody>
+          {% for c, v in missing.items() %}
+            <tr><td>{{ c }}</td><td>{{ v.combined }}</td><td>{{ v.na }}</td><td>{{ v.blank }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="small text-muted">Missing summary appears after upload.</div>
+  {% endif %}
+</div>
+
+<!-- 4. Cleaning + download -->
+<div class="section sec-4">
+  <h4>4) Cleaned dataset</h4>
+  {% if clean_file %}
+    <p>Cleaned dataset saved (numeric features filled by mean when training). Download below:</p>
+    <a class="btn btn-success" href="{{ url_for('static', filename='results/' ~ clean_file) }}">⬇️ Download cleaned CSV</a>
+  {% else %}
+    <div class="small text-muted">Cleaned file appears after running training (section 5).</div>
+  {% endif %}
+</div>
+
+<!-- 5. Left: params, Right: select variables -->
+<div class="section sec-5">
+  <h4>5) Training parameters & variable selectors</h4>
+  <form method="POST">
+    <input type="hidden" name="action" value="train">
+    <div class="row">
+      <div class="col-md-5">
+        <div class="table-white p-3">
+          <label class="form-label small text-muted">Train split (0.1 - 0.95)</label>
+          <input class="form-control mb-2" type="number" name="split_ratio" step="0.05" min="0.1" max="0.95" value="0.8">
+
+          <label class="form-label small text-muted">Lambda (Ridge/Lasso α)</label>
+          <input class="form-control mb-2" type="number" name="lam" step="0.1" value="1.0">
+
+          <label class="form-label small text-muted">Learning rate (GD)</label>
+          <input class="form-control mb-2" type="number" name="learning_rate" step="0.001" value="0.01">
+
+          <label class="form-label small text-muted">Epochs (GD)</label>
+          <input class="form-control mb-2" type="number" name="epochs" step="1" value="100">
+
+          <div class="small text-muted">Click <strong>Train</strong> to compute models and metrics.</div>
+        </div>
+      </div>
+
+      <div class="col-md-7">
+        <div class="table-white p-3">
+          <label class="form-label small text-muted">Target (Y)</label>
+          <select class="form-select mb-2" name="y_col" required>
+            {% if columns %}
+              {% for c in columns %}
+                <option value="{{ c }}">{{ c }}</option>
+              {% endfor %}
+            {% endif %}
+          </select>
+
+          <label class="form-label small text-muted">Features (X) — select one or more</label>
+          <select class="form-select mb-2" name="x_cols" multiple required>
+            {% if columns %}
+              {% for c in columns %}
+                <option value="{{ c }}">{{ c }}</option>
+              {% endfor %}
+            {% endif %}
+          </select>
+          <div class="small text-muted">Tip: hold Ctrl (Windows) or Cmd (Mac) to select multiple.</div>
+
+          <div class="mt-3">
+            <button class="btn btn-success" type="submit">Train (Linear / Ridge / Lasso)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- 6. Scatter & best fit -->
+<div class="section sec-6">
+  <h4>6) Scatter & best-fit (if one feature selected)</h4>
+  {% if scatter_file %}
+    <div class="row">
+      <div class="col-md-8">
+        <img src="{{ url_for('static', filename='results/' ~ scatter_file) }}" class="img-fluid rounded" alt="scatter">
+      </div>
+      <div class="col-md-4">
+        <div class="table-white p-2">
+          <a class="btn btn-outline-primary mb-2" href="{{ url_for('static', filename='results/' ~ scatter_file) }}" download>⬇️ Download Scatter</a>
+          <div class="small text-muted">Scatter with linear best-fit (train vs test points).</div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="small text-muted">Single-feature training produces scatter & best-fit.</div>
+  {% endif %}
+</div>
+
+<!-- 7. Models + GD plot -->
+<div class="section sec-7">
+  <h4>7) Models & Gradient Descent</h4>
+  {% if grad_file %}
+    <div class="row">
+      <div class="col-md-8">
+        <img src="{{ url_for('static', filename='results/' ~ grad_file) }}" class="img-fluid rounded" alt="gd">
+      </div>
+      <div class="col-md-4">
+        <div class="table-white p-2">
+          <a class="btn btn-outline-primary mb-2" href="{{ url_for('static', filename='results/' ~ grad_file) }}" download>⬇️ Download GD Loss Plot</a>
+          <div class="small text-muted">Gradient descent loss vs epoch.</div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="small text-muted">GD loss plot appears after training.</div>
+  {% endif %}
+</div>
+
+<!-- 8. Metrics / R2 / Adj R2 / accuracy / GD minima / hint -->
+<div class="section sec-8">
+  <h4>8) Metrics & Interpretation</h4>
+  {% if results %}
+    <div class="table-white p-2">
+      <table class="table table-bordered">
+        <thead class="table-light"><tr><th>Model</th><th>MSE</th><th>MAE</th><th>RMSE</th><th>R²</th><th>Adj R²</th><th>Accuracy %</th></tr></thead>
+        <tbody>
+          {% for name, m in results.items() %}
+            <tr {% if best_model and name == best_model %}class="table-success"{% endif %}>
+              <td>{{ name }}</td>
+              <td>{{ m["MSE"]|round(4) }}</td>
+              <td>{{ m["MAE"]|round(4) }}</td>
+              <td>{{ m["RMSE"]|round(4) }}</td>
+              <td>{{ m["R2"]|round(4) }}</td>
+              <td>{{ m["Adj_R2"]|round(4) }}</td>
+              <td>{{ m["Accuracy_%"]|round(2) }}%</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if gd_info %}
+        <div class="mt-2 small text-muted">GD minima: loss={{ gd_info.min_loss }} at epoch={{ gd_info.min_epoch }}</div>
+      {% endif %}
+
+      {% if fit_hint %}
+        <div class="alert alert-info mt-2">{{ fit_hint }}</div>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="small text-muted">Run training to see metrics.</div>
+  {% endif %}
+</div>
+
+<!-- 9. Manual prediction -->
+<div class="section sec-9">
+  <h4>9) Manual prediction</h4>
+
+  {% if manual_pred_value is defined and manual_pred_value is not none %}
+    <div class="alert alert-success">Predicted <strong>{{ manual_pred_target }}</strong> = <strong>{{ manual_pred_value }}</strong></div>
+  {% endif %}
+
+  {% if last_features %}
+    <form method="POST">
+      <input type="hidden" name="manual_predict" value="1">
+      <div class="row g-2">
+        {% for f in last_features %}
+          <div class="col-md-3">
+            <label class="form-label small text-muted">{{ f }}</label>
+            <input class="form-control" type="number" step="any" name="{{ f }}" required>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="mt-3">
+        <button class="btn btn-warning" type="submit">Predict</button>
+      </div>
+    </form>
+  {% else %}
+    <div class="small text-muted">After training you'll be able to enter independent values for the last-run features.</div>
+  {% endif %}
+</div>
+{% endblock %}
